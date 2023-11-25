@@ -106,11 +106,14 @@ class App(tk.Frame):
 
 
     def _join_room(self):
-        self.join_button.config(state=tk.DISABLED)
-        self.room_textbox.config(state=tk.DISABLED)
         room = self.room_value.get()
-        self.status_value.set(f'Joining "{room}" room...')
-        self.client.start(room, self._on_connect)
+        if room == '':
+            self.status_value.set(f'Room cannot be empty!')
+        else:
+            self.join_button.config(state=tk.DISABLED)
+            self.room_textbox.config(state=tk.DISABLED)
+            self.status_value.set(f'Joining "{room}" room...')
+            self.client.start(room, self._on_connect)
 
 
     def _on_connect(self, is_connected: bool):
