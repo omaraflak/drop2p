@@ -9,10 +9,13 @@ from drop2p.client import Client, Progress
 class App(tk.Frame):
     def __init__(self, master: tk.Tk, host: str, port: int):
         super().__init__(master)
-        self.master = master
         self.pack()
+
+        self.master = master
+        self.master.title('Drop2p')
+        self.master.protocol("WM_DELETE_WINDOW", self._on_close)
+
         self.client = Client(host, port, self._on_send_progress, self._on_recv_progress)
-        master.protocol("WM_DELETE_WINDOW", self._on_close)
         
         self._join_room_frame()
         self._upload_download_frame()
@@ -134,10 +137,9 @@ class App(tk.Frame):
         self.status_value.set('')
 
 
-def main(host: str = '51.68.213.225', port: int = 6709):
+def main(host: str, port: int):
     logging.basicConfig(level=logging.INFO)
     root = tk.Tk()
-    root.title('Drop2p')
     app = App(root, host, port)
     app.mainloop()
 

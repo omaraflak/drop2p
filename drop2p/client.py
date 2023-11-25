@@ -1,11 +1,10 @@
 import os
 import time
-import errno
 import socket
 import logging
 from natpunch.client import NatPunchClient
 from collections import deque
-from typing import Optional, Callable
+from typing import Callable
 from threading import Thread
 from dataclasses import dataclass
 from drop2p.io import FileInputStream, FileOutputStream
