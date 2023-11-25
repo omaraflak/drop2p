@@ -9,11 +9,19 @@ from drop2p.client import Client, Progress
 class App(tk.Frame):
     def __init__(self, master: tk.Tk, host: str, port: int):
         super().__init__(master)
+        self.master = master
         self.pack()
         self.client = Client(host, port, self._on_send_progress, self._on_recv_progress)
+        master.protocol("WM_DELETE_WINDOW", self._on_close)
         
         self._join_room_frame()
         self._upload_download_frame()
+
+
+    def _on_close(self):
+        if self.client.is_connected():
+            self.client.stop()
+        self.master.destroy()
 
 
     def _join_room_frame(self):

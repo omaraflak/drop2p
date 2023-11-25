@@ -59,6 +59,7 @@ class Client:
         self.on_recv_progress = on_recv_progress
         self.pending_files: deque[str] = deque()
         self.output_directory = output_directory
+        self.running = False
 
 
     def start(self, room: str) -> bool:
@@ -80,6 +81,10 @@ class Client:
 
     def send_files(self, files: str):
         self.pending_files.extend(files)
+
+
+    def is_connected(self) -> bool:
+        return self.running
 
 
     def _send_loop(self):
