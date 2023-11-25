@@ -100,8 +100,6 @@ class Client:
             filepath = self.pending_files.popleft()
             try:
                 self._send_file(filepath)
-            except FileNotFoundError as e:
-                logging.error(f'File not found: {e}')
             except socket.timeout:
                 logging.debug('timed out')
             except socket.error as e:
@@ -113,12 +111,12 @@ class Client:
         filename = os.path.basename(filepath)
         header = Header(filename, len(self.pending_files))
         socket_send(self.socket, header.to_bytes())
-        fis = FileInputStream(filepath)
-        socket_send_stream(
-            self.socket,
-            fis,
-            lambda sent, size: self.on_send_progress(Progress(filename, sent, size, header.pending_files))
-        )
+        with FileInputStream(filepath) as fis:
+            socket_send_stream(
+                self.socket,
+                fis,
+                lambda sent, size: self.on_send_progress(Progress(filename, sent, size, header.pending_files))
+            )
 
 
     def _recv_loop(self):
@@ -134,10 +132,9 @@ class Client:
 
     def _recv_file(self):
         header = Header.from_bytes(socket_recv(self.socket))
-        fos = FileOutputStream(os.path.join(self.output_directory, header.filename))
-        socket_recv_stream(
-            self.socket,
-            fos,
-            lambda received, size: self.on_recv_progress(Progress(header.filename, received, size, header.pending_files))
-        )
-        fos.close()
+        with FileOutputStream(os.path.join(self.output_directory, header.filename)) as fos:
+            socket_recv_stream(
+                self.socket,
+                fos,
+                lambda received, size: self.on_recv_progress(Progress(header.filename, received, size, header.pending_files))
+            )
