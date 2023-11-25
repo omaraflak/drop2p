@@ -62,16 +62,9 @@ class Client:
         self.running = False
 
 
-    def start(self, room: str) -> bool:
-        self.socket = NatPunchClient(self.host, self.port, room).start()
-        if not self.socket:
-            return False
+    def start(self, room: str, on_result: Callable[[bool], None]):
         os.makedirs(self.output_directory, exist_ok=True)
-        self.socket.settimeout(360)
-        self.running = True
-        Thread(target=self._send_loop).start()
-        Thread(target=self._recv_loop).start()
-        return True
+        Thread(target=self._connect, args=(room, on_result)).start()
 
 
     def stop(self):
@@ -85,6 +78,18 @@ class Client:
 
     def is_connected(self) -> bool:
         return self.running
+
+
+    def _connect(self, room: str, on_result: Callable[[bool], None]):
+        self.socket = NatPunchClient(self.host, self.port, room).start()
+        if not self.socket:
+            on_result(False)
+            return
+        self.socket.settimeout(360)
+        self.running = True
+        Thread(target=self._send_loop).start()
+        Thread(target=self._recv_loop).start()
+        on_result(True)
 
 
     def _send_loop(self):
@@ -102,7 +107,7 @@ class Client:
                 logging.debug('timed out')
             except socket.error as e:
                 logging.error(f'error: {e}')
-                self.stop()
+                self.running = False
 
 
     def _send_file(self, filepath: str):
@@ -125,7 +130,7 @@ class Client:
                 logging.debug('timed out')
             except socket.error as e:
                 logging.error(f'error: {e}')
-                self.stop()
+                self.running = False
 
 
     def _recv_file(self):

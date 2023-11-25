@@ -110,13 +110,16 @@ class App(tk.Frame):
         self.room_textbox.config(state=tk.DISABLED)
         room = self.room_value.get()
         self.status_value.set(f'Joining "{room}" room...')
-        self.update()
-        if self.client.start(room):
+        self.client.start(room, self._on_connect)
+
+
+    def _on_connect(self, is_connected: bool):
+        if is_connected:
             self.disconnect_button.config(state=tk.NORMAL)
             self.status_value.set(f'Connected!')
         else:
             self.join_button.config(state=tk.NORMAL)
-            self.room_textbox.config(state=tk.NORMAL)            
+            self.room_textbox.config(state=tk.NORMAL)
             self.status_value.set(f'Could not connect.')
 
 

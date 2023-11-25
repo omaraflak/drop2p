@@ -1,4 +1,6 @@
+import time
 import socket
+import select
 from typing import Optional, Callable
 from drop2p.io import InputStream, OutputStream
 
@@ -50,8 +52,16 @@ def _recv_all(sock: socket.socket, size: int) -> bytes:
     data = bytearray()
     while len(data) != size:
         chunk = min(MAX_CHUNK, size - len(data))
+        if not _has_data(sock):
+            time.sleep(0.01)
+            continue
         received = sock.recv(chunk)
         if received == b'':
             raise socket.error('socket closed!')
         data.extend(received)
     return bytes(data)
+
+
+def _has_data(sock: socket.socket) -> bool:
+    r, _, _ = select.select([sock], [], [])
+    return len(r) > 0
