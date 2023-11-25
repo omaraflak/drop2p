@@ -59,7 +59,6 @@ class Client:
         self.on_recv_progress = on_recv_progress
         self.pending_files: deque[str] = deque()
         self.output_directory = output_directory
-        self.running = True
 
 
     def start(self, room: str) -> bool:
@@ -68,6 +67,7 @@ class Client:
             return False
         os.makedirs(self.output_directory, exist_ok=True)
         self.socket.settimeout(360)
+        self.running = True
         Thread(target=self._send_loop).start()
         Thread(target=self._recv_loop).start()
         return True

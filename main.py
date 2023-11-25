@@ -23,10 +23,15 @@ class App(tk.Frame):
         self.room_value = tk.StringVar(value='Enter room id')
         self.status_value = tk.StringVar()
 
-        tk.Entry(vertical, width=10, textvariable=self.room_value).pack(side=tk.TOP)
+        self.room_textbox = tk.Entry(vertical, width=10, textvariable=self.room_value)
+        self.room_textbox.pack(side=tk.TOP)
         self.join_button = tk.Button(vertical, text='Join', padx=3, pady=3, command=self._join_room)
         self.join_button.pack(side=tk.TOP)
         tk.Label(vertical, width=10, wraplength=100, justify='left', textvariable=self.status_value).pack(side=tk.TOP)
+
+        self.disconnect_button = tk.Button(vertical, text='Disconnect', padx=3, pady=3, command=self._disconnect)
+        self.disconnect_button.pack(side=tk.BOTTOM)
+        self.disconnect_button.config(state=tk.DISABLED)
 
 
     def _upload_download_frame(self):
@@ -77,6 +82,9 @@ class App(tk.Frame):
         self.upload_status.set(f'({percent}%) {progress.file}')
         self.upload_progress.set(percent)
         self.all_uploads_status.set(f'{progress.pending_files} pending files')
+        if progress.processed_bytes == progress.file_size:
+            self.upload_progress.set(0)
+            self.upload_status.set('')
 
 
     def _on_recv_progress(self, progress: Progress):
@@ -84,16 +92,32 @@ class App(tk.Frame):
         self.download_status.set(f'({percent}%) {progress.file}')
         self.download_progress.set(percent)
         self.all_downloads_status.set(f'{progress.pending_files} pending files')
+        if progress.processed_bytes == progress.file_size:
+            self.download_progress.set(0)
+            self.download_status.set('')
 
 
     def _join_room(self):
         self.join_button.config(state=tk.DISABLED)
+        self.room_textbox.config(state=tk.DISABLED)
         room = self.room_value.get()
         self.status_value.set(f'Joining "{room}" room...')
         self.update()
         if self.client.start(room):
+            self.disconnect_button.config(state=tk.NORMAL)
             self.status_value.set(f'Connected!')
+        else:
+            self.join_button.config(state=tk.NORMAL)
+            self.room_textbox.config(state=tk.NORMAL)            
+            self.status_value.set(f'Could not connect.')
 
+
+    def _disconnect(self):
+        self.client.stop()
+        self.join_button.config(state=tk.NORMAL)
+        self.room_textbox.config(state=tk.NORMAL)
+        self.disconnect_button.config(state=tk.DISABLED)
+        self.status_value.set('')
 
 
 def main(host: str = '51.68.213.225', port: int = 6709):
