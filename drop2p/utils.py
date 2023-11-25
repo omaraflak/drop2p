@@ -3,7 +3,7 @@ from typing import Optional, Callable
 from drop2p.io import InputStream, OutputStream
 
 
-MAX_CHUNK = 1 << 18
+MAX_CHUNK = 1 << 20
 OnProgress = Callable[[int, int], None]
 
 
