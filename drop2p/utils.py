@@ -41,6 +41,7 @@ def socket_recv_stream(sock: socket.socket, stream: OutputStream, on_progress: O
         chunk = min(MAX_CHUNK, size - received)
         data = _recv_all(sock, chunk)
         stream.write(data)
+        received += len(data)
         if on_progress:
             on_progress(received, size)
 
