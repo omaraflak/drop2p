@@ -50,7 +50,7 @@ class Client:
         port: int,
         on_send_progress: OnProgress,
         on_recv_progress: OnProgress,
-        output_directory: str = './downloads'
+        output_directory: str = './drop2p'
     ):
         self.host = host
         self.port = port
