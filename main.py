@@ -24,7 +24,8 @@ class App(tk.Frame):
         self.status_value = tk.StringVar()
 
         tk.Entry(vertical, width=10, textvariable=self.room_value).pack(side=tk.TOP)
-        tk.Button(vertical, text='Join', padx=3, pady=3, command=self._join_room).pack(side=tk.TOP)
+        self.join_button = tk.Button(vertical, text='Join', padx=3, pady=3, command=self._join_room)
+        self.join_button.pack(side=tk.TOP)
         tk.Label(vertical, width=10, wraplength=100, justify='left', textvariable=self.status_value).pack(side=tk.TOP)
 
 
@@ -39,8 +40,7 @@ class App(tk.Frame):
         self.added_files_value = tk.StringVar()
         select_files_frame = tk.Frame(parent)
         select_files_frame.pack(side=tk.TOP, anchor=tk.W)
-        self.join_button = tk.Button(select_files_frame, text='Add files', padx=3, pady=3, command=self._on_add_files)
-        self.join_button.pack(side=tk.LEFT)
+        tk.Button(select_files_frame, text='Add files', padx=3, pady=3, command=self._on_add_files).pack(side=tk.LEFT)
         tk.Label(select_files_frame, textvariable=self.added_files_value).pack(side=tk.RIGHT)
 
         self.upload_progress = tk.IntVar()
@@ -90,7 +90,10 @@ class App(tk.Frame):
         self.join_button.config(state=tk.DISABLED)
         room = self.room_value.get()
         self.status_value.set(f'Joining "{room}" room...')
-        self.client.start(room)
+        self.update()
+        # if self.client.start(room):
+        #     self.status_value.set(f'Connected!')
+
 
 
 def main(host: str = '51.68.213.225', port: int = 6709):
