@@ -1,4 +1,5 @@
 tk
 fire
+sv_ttk
 git+https://github.com/omaraflak/pysock.git
 git+https://github.com/omaraflak/natpunch.git

@@ -1,4 +1,5 @@
 import fire
+import sv_ttk
 import logging
 import tkinter as tk
 import tkinter.ttk
@@ -141,6 +142,7 @@ def main(host: str, port: int):
     logging.basicConfig(level=logging.INFO)
     root = tk.Tk()
     app = App(root, host, port)
+    sv_ttk.set_theme('light')
     app.mainloop()
 
 
