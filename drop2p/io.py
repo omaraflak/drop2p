@@ -40,7 +40,7 @@ class FileInputStream:
 
 
     def read(self, size: int) -> bytes:
-        self.file.read(size)
+        return self.file.read(size)
 
 
     def size(self) -> int:

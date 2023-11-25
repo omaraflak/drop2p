@@ -29,7 +29,7 @@ class Header:
 
     def to_bytes(self) -> bytes:
         return (
-            len(self.pending_files).to_bytes(4, 'big') +
+            self.pending_files.to_bytes(4, 'big') +
             self.filename.encode()
         )
 
@@ -66,6 +66,7 @@ class Client:
         self.socket = NatPunchClient(self.host, self.port, room).start()
         if not self.socket:
             return False
+        os.makedirs(self.output_directory, exist_ok=True)
         self.socket.settimeout(360)
         Thread(target=self._send_loop).start()
         Thread(target=self._recv_loop).start()
@@ -74,6 +75,7 @@ class Client:
 
     def stop(self):
         self.running = False
+        self.socket.close()
 
 
     def send_files(self, files: str):
@@ -95,7 +97,7 @@ class Client:
                 logging.debug('timed out')
             except socket.error as e:
                 logging.error(f'error: {e}')
-                self.running = False
+                self.stop()
 
 
     def _send_file(self, filepath: str):
@@ -118,7 +120,7 @@ class Client:
                 logging.debug('timed out')
             except socket.error as e:
                 logging.error(f'error: {e}')
-                self.running = False
+                self.stop()
 
 
     def _recv_file(self):

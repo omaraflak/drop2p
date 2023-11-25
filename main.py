@@ -91,8 +91,8 @@ class App(tk.Frame):
         room = self.room_value.get()
         self.status_value.set(f'Joining "{room}" room...')
         self.update()
-        # if self.client.start(room):
-        #     self.status_value.set(f'Connected!')
+        if self.client.start(room):
+            self.status_value.set(f'Connected!')
 
 
 
