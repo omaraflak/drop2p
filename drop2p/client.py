@@ -51,10 +51,10 @@ class Client:
         port: int,
         on_send_progress: OnProgress,
         on_recv_progress: OnProgress,
-        room: Optional[str] = None,
         output_directory: str = './downloads'
     ):
-        self.client = NatPunchClient(host, port, room)
+        self.host = host
+        self.port = port
         self.on_send_progress = on_send_progress
         self.on_recv_progress = on_recv_progress
         self.pending_files: deque[str] = deque()
@@ -62,8 +62,8 @@ class Client:
         self.running = True
 
 
-    def start(self) -> bool:
-        self.socket = self.client.start()
+    def start(self, room: str) -> bool:
+        self.socket = NatPunchClient(self.host, self.port, room).start()
         if not self.socket:
             return False
         self.socket.settimeout(360)
@@ -76,8 +76,8 @@ class Client:
         self.running = False
 
 
-    def send_file(self, file: str):
-        self.pending_files.append(file)
+    def send_files(self, files: str):
+        self.pending_files.extend(files)
 
 
     def _send_loop(self):
