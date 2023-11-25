@@ -7,8 +7,14 @@ from collections import deque
 from typing import Callable
 from threading import Thread
 from dataclasses import dataclass
-from drop2p.io import FileInputStream, FileOutputStream
-from drop2p.utils import socket_send, socket_send_stream, socket_recv, socket_recv_stream
+from pysock import (
+    FileInputStream,
+    FileOutputStream,
+    socket_send,
+    socket_send_stream,
+    socket_recv,
+    socket_recv_stream
+)
 
 
 @dataclass

@@ -3,7 +3,7 @@ import logging
 import tkinter as tk
 import tkinter.ttk
 import tkinter.filedialog
-from drop2p.client import Client, Progress
+from client import Client, Progress
 
 
 class App(tk.Frame):

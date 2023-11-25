@@ -1,3 +1,4 @@
 tk
 fire
-git+https://github.com/omaraflak/nat-punch.git
+git+https://github.com/omaraflak/pysock.git
+git+https://github.com/omaraflak/natpunch.git
