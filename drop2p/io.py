@@ -16,23 +16,6 @@ class OutputStream(Protocol):
         pass
 
 
-class BytesInputSream:
-    def __init__(self, data: bytes):
-        self.data = data
-        self.cursor = 0
-
-
-    def read(self, size: int) -> bytes:
-        read = min(size, len(self.data) - self.cursor)
-        tmp = self.data[self.cursor : self.cursor + read]
-        self.cursor += read
-        return tmp
-
-
-    def size(self) -> int:
-        return len(self.data)
-
-
 class FileInputStream:
     def __init__(self, filepath: str):
         self.filepath = filepath
