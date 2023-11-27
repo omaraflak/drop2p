@@ -1,149 +1,201 @@
+import wx
 import fire
-import sv_ttk
 import logging
-import tkinter as tk
-import tkinter.ttk
-import tkinter.filedialog
 from client import Client, Progress
 
 
-class App(tk.Frame):
-    def __init__(self, master: tk.Tk, host: str, port: int):
-        super().__init__(master)
-        self.pack()
-
-        self.master = master
-        self.master.title('Drop2p')
-        self.master.protocol("WM_DELETE_WINDOW", self._on_close)
-
+class FileTransferUI(wx.Frame):
+    def __init__(self, host: str, port: int, *args, **kw):
+        super(FileTransferUI, self).__init__(*args, **kw)
         self.client = Client(host, port, self._on_send_progress, self._on_recv_progress)
+        self.InitUI()
+
+    def InitUI(self):
+        self.splitter = wx.SplitterWindow(self)
+
+        # Panel 1 for Textbox, Join Room, and Disconnect
+        self.panel1 = wx.Panel(self.splitter)
+        panel1_box = wx.BoxSizer(wx.VERTICAL)
+
+        self.room_text = wx.TextCtrl(self.panel1, style=wx.TE_PROCESS_ENTER)
+        self.room_text.SetHint("Room id")  # Placeholder for textbox
+
+        self.join_button = wx.Button(self.panel1, label='Join Room')
+        self.join_button.Bind(wx.EVT_BUTTON, self._on_join_room)
+        panel1_box.Add(self.room_text, flag=wx.EXPAND | wx.ALL, border=10)
+        panel1_box.Add(self.join_button, flag=wx.EXPAND | wx.LEFT | wx.RIGHT, border=10)
+
+        # Status label setup - place it right below the Join Room button
+        self.status_label = wx.StaticText(self.panel1, label='')
+        self.status_label.SetForegroundColour(wx.Colour(128, 128, 128))  # Set text color to gray
+        panel1_box.Add(self.status_label, flag=wx.LEFT | wx.BOTTOM, border=10)
+
+        panel1_box.AddStretchSpacer()  # Add a stretchable space
+
+        self.disconnect_button = wx.Button(self.panel1, label='Disconnect')
+        self.disconnect_button.Bind(wx.EVT_BUTTON, self._disconnect)
+        panel1_box.Add(self.disconnect_button, flag=wx.EXPAND | wx.ALL, border=10)
+
+        self.panel1.SetSizer(panel1_box)
+
+        # Panel 2 for Add Files, Progress Bars, and Titles
+        self.panel2 = wx.Panel(self.splitter)
+        panel2_box = wx.BoxSizer(wx.VERTICAL)
+
+        self.add_files_button = wx.Button(self.panel2, label='Add Files')
+        self.add_files_button.Bind(wx.EVT_BUTTON, self._on_add_files)
+        self.files_selected_label = wx.StaticText(self.panel2, label='0 files selected')
         
-        self._join_room_frame()
-        self._upload_download_frame()
+        hbox_add_files = wx.BoxSizer(wx.HORIZONTAL)
+        hbox_add_files.Add(self.add_files_button, flag=wx.RIGHT, border=10)
+        hbox_add_files.Add(self.files_selected_label, flag=wx.ALIGN_CENTER_VERTICAL)
+
+        panel2_box.Add(hbox_add_files, flag=wx.EXPAND | wx.ALL, border=10)
+
+        # Sending section with title above progress bar
+        sending_box = wx.BoxSizer(wx.VERTICAL)
+        self.sending_label = wx.StaticText(self.panel2, label='Sending (0 pending files)')
+        hbox_progress1 = wx.BoxSizer(wx.HORIZONTAL)
+        self.send_progress_bar = wx.Gauge(self.panel2, range=100)
+        self.send_progress_label = wx.StaticText(self.panel2, label='0%')
+        hbox_progress1.Add(self.send_progress_bar, proportion=1, flag=wx.EXPAND)
+        hbox_progress1.Add(self.send_progress_label, flag=wx.ALIGN_CENTER_VERTICAL | wx.LEFT, border=5)
+        sending_box.Add(self.sending_label, flag=wx.LEFT | wx.BOTTOM, border=10)
+        sending_box.Add(hbox_progress1, flag=wx.EXPAND)
+        panel2_box.Add(sending_box, flag=wx.EXPAND | wx.ALL, border=10)
+
+        # Receiving section with title above progress bar
+        receiving_box = wx.BoxSizer(wx.VERTICAL)
+        self.receiving_label = wx.StaticText(self.panel2, label='Receiving (0 pending files)')
+        hbox_progress2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.recv_progress_bar = wx.Gauge(self.panel2, range=100)
+        self.recv_progress_label = wx.StaticText(self.panel2, label='0%')
+        hbox_progress2.Add(self.recv_progress_bar, proportion=1, flag=wx.EXPAND)
+        hbox_progress2.Add(self.recv_progress_label, flag=wx.ALIGN_CENTER_VERTICAL | wx.LEFT, border=5)
+        receiving_box.Add(self.receiving_label, flag=wx.LEFT | wx.BOTTOM, border=10)
+        receiving_box.Add(hbox_progress2, flag=wx.EXPAND)
+        panel2_box.Add(receiving_box, flag=wx.EXPAND | wx.ALL, border=10)
+
+        self.panel2.SetSizer(panel2_box)
+
+        # Split the window and set the sash position
+        self.splitter.SplitVertically(self.panel1, self.panel2)
+        self.Bind(wx.EVT_SIZE, self._on_size)
+
+        self.SetTitle('Drop2p')
+        self.Centre()
+        self.Bind(wx.EVT_CLOSE, self._on_close)
+        self._disconnected_state()
 
 
-    def _on_close(self):
-        if self.client.is_connected():
-            self.client.stop()
-        self.master.destroy()
+    def _on_size(self, event: wx.Event):
+        size = self.GetSize()
+        self.splitter.SetSashPosition(int(size.x * 0.3))
+        event.Skip()
 
 
-    def _join_room_frame(self):
-        vertical = tk.Frame(padx=10, pady=10, highlightbackground='gray', highlightthickness=2)
-        vertical.pack(side=tk.LEFT, fill='y')
+    def _on_add_files(self, event: wx.Event):
+        with wx.FileDialog(self, "Choose files", wildcard="All files (*.*)|*.*",
+                           style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST | wx.FD_MULTIPLE) as fileDialog:
+            assert isinstance(fileDialog, wx.FileDialog)
 
-        self.room_value = tk.StringVar(value='Enter room id')
-        self.status_value = tk.StringVar()
+            if fileDialog.ShowModal() == wx.ID_CANCEL:
+                return
 
-        self.room_textbox = tk.Entry(vertical, width=10, textvariable=self.room_value)
-        self.room_textbox.pack(side=tk.TOP)
-        self.join_button = tk.Button(vertical, text='Join', padx=3, pady=3, command=self._join_room)
-        self.join_button.pack(side=tk.TOP)
-        tk.Label(vertical, width=10, wraplength=100, justify='left', textvariable=self.status_value).pack(side=tk.TOP)
+            paths = fileDialog.GetPaths()
+            self.files_selected_label.SetLabel(f'{len(paths)} files selected')
+            self.client.send_files(paths)
 
-        self.disconnect_button = tk.Button(vertical, text='Disconnect', padx=3, pady=3, command=self._disconnect)
-        self.disconnect_button.pack(side=tk.BOTTOM)
-        self.disconnect_button.config(state=tk.DISABLED)
-
-
-    def _upload_download_frame(self):
-        frame = tk.Frame(padx=10, pady=10, highlightbackground='gray', highlightthickness=2)
-        frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        self._create_upload_frame(frame)
-        self._create_download_frame(frame)
-
-
-    def _create_upload_frame(self, parent: tk.Frame):
-        self.added_files_value = tk.StringVar()
-        select_files_frame = tk.Frame(parent)
-        select_files_frame.pack(side=tk.TOP, anchor=tk.W)
-        tk.Button(select_files_frame, text='Add files', padx=3, pady=3, command=self._on_add_files).pack(side=tk.LEFT)
-        tk.Label(select_files_frame, textvariable=self.added_files_value).pack(side=tk.RIGHT)
-
-        self.upload_progress = tk.IntVar()
-        self.upload_status = tk.StringVar()
-        file_progress_frame = tk.Frame(parent)
-        file_progress_frame.pack(side=tk.TOP, anchor=tk.W)
-        tkinter.ttk.Progressbar(file_progress_frame, variable=self.upload_progress, length=200).pack(side=tk.LEFT)
-        tk.Label(file_progress_frame, textvariable=self.upload_status).pack(side=tk.RIGHT)
-
-        self.all_uploads_status = tk.StringVar()
-        tk.Label(parent, textvariable=self.all_uploads_status).pack(side=tk.TOP, anchor=tk.W)
-
-
-    def _create_download_frame(self, parent: tk.Frame):
-        self.download_progress = tk.IntVar()
-        self.download_status = tk.StringVar()
-        file_progress_frame = tk.Frame(parent)
-        file_progress_frame.pack(side=tk.TOP, anchor=tk.W)
-        tkinter.ttk.Progressbar(file_progress_frame, variable=self.download_progress, length=200).pack(side=tk.LEFT)
-        tk.Label(file_progress_frame, textvariable=self.download_status).pack(side=tk.RIGHT)
-
-        self.all_downloads_status = tk.StringVar()
-        tk.Label(parent, textvariable=self.all_downloads_status).pack(side=tk.TOP, anchor=tk.W)
-
-
-    def _on_add_files(self):
-        files = tkinter.filedialog.askopenfilenames()
-        self.client.send_files(files)
-        self.added_files_value.set(f'Added {len(files)} files')
+        self.Layout()
 
 
     def _on_send_progress(self, progress: Progress):
+        wx.CallAfter(self._update_send_progress, progress)
+
+
+    def _update_send_progress(self, progress: Progress):
         percent = int(100 * progress.processed_bytes / progress.file_size)
-        self.upload_status.set(f'({percent}%) {progress.file}')
-        self.upload_progress.set(percent)
-        self.all_uploads_status.set(f'{progress.pending_files} pending files')
+        self.send_progress_label.SetLabelText(f'({percent}%) {progress.file}')
+        self.send_progress_bar.SetValue(percent)
+        self.sending_label.SetLabelText(f'Sending ({progress.pending_files} pending files)')
         if progress.processed_bytes == progress.file_size:
-            self.upload_progress.set(0)
-            self.upload_status.set('')
+            self.send_progress_bar.SetValue(0)
+            self.send_progress_label.SetLabelText('0%')
+        self.send_progress_bar.Update()
+        self.send_progress_label.Update()
+        self.sending_label.Update()
 
 
     def _on_recv_progress(self, progress: Progress):
+        wx.CallAfter(self._update_recv_progress, progress)
+
+
+    def _update_recv_progress(self, progress: Progress):
         percent = int(100 * progress.processed_bytes / progress.file_size)
-        self.download_status.set(f'({percent}%) {progress.file}')
-        self.download_progress.set(percent)
-        self.all_downloads_status.set(f'{progress.pending_files} pending files')
+        self.recv_progress_label.SetLabelText(f'({percent}%) {progress.file}')
+        self.recv_progress_bar.SetValue(percent)
+        self.receiving_label.SetLabelText(f'Receiving ({progress.pending_files} pending files)')
         if progress.processed_bytes == progress.file_size:
-            self.download_progress.set(0)
-            self.download_status.set('')
+            self.recv_progress_bar.SetValue(0)
+            self.recv_progress_label.SetLabelText('0%')
+        self.recv_progress_bar.Update()
+        self.recv_progress_label.Update()
+        self.receiving_label.Update()
 
 
-    def _join_room(self):
-        room = self.room_value.get()
-        if room == '':
-            self.status_value.set(f'Room cannot be empty!')
-        else:
-            self.join_button.config(state=tk.DISABLED)
-            self.room_textbox.config(state=tk.DISABLED)
-            self.status_value.set(f'Joining "{room}" room...')
-            self.client.start(room, self._on_connect)
+    def _on_join_room(self, event: wx.Event):
+        room = self.room_text.GetValue()
+        self.room_text.Disable()
+        self.join_button.Disable()
+        self._show_status(f'Joining room {room}...')
+        self.client.start(room, self._on_connect_result)
 
 
-    def _on_connect(self, is_connected: bool):
+    def _show_status(self, text: str):
+        self.status_label.SetLabel(text)
+        self.status_label.Wrap(self.panel1.GetSize().width)
+        self.status_label.Layout()
+
+
+    def _on_connect_result(self, is_connected: bool):
         if is_connected:
-            self.disconnect_button.config(state=tk.NORMAL)
-            self.status_value.set(f'Connected!')
+            self._connected_state()
+            self._show_status('Connected!')
         else:
-            self.join_button.config(state=tk.NORMAL)
-            self.room_textbox.config(state=tk.NORMAL)
-            self.status_value.set(f'Could not connect.')
+            self._disconnected_state()
+            self._show_status('Failed to connect!')
 
 
-    def _disconnect(self):
+    def _disconnect(self, event: wx.Event):
+        self._disconnected_state()
+        self._show_status('')
         self.client.stop()
-        self.join_button.config(state=tk.NORMAL)
-        self.room_textbox.config(state=tk.NORMAL)
-        self.disconnect_button.config(state=tk.DISABLED)
-        self.status_value.set('')
+
+
+    def _connected_state(self, connected: bool = True):
+        self.disconnect_button.Enable(connected)
+        self.join_button.Enable(not connected)
+        self.add_files_button.Enable(connected)
+        self.room_text.Enable(not connected)
+
+
+    def _disconnected_state(self):
+        self._connected_state(False)
+
+
+    def _on_close(self, event: wx.Event):
+        if self.client.is_connected():
+            self.client.stop()
+        self.Destroy()
 
 
 def main(host: str, port: int):
     logging.basicConfig(level=logging.INFO)
-    root = tk.Tk()
-    app = App(root, host, port)
-    sv_ttk.set_theme('light')
-    app.mainloop()
+    app = wx.App(False)
+    frame = FileTransferUI(host, port, None)
+    frame.Show(True)
+    frame.Raise()
+    app.MainLoop()
 
 
 if __name__ == '__main__':

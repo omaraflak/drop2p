@@ -1,5 +1,4 @@
-tk
 fire
-sv_ttk
+wxpython
 git+https://github.com/omaraflak/pysock.git
 git+https://github.com/omaraflak/natpunch.git
