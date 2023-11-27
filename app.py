@@ -58,10 +58,13 @@ class FileTransferUI(wx.Frame):
         hbox_progress1 = wx.BoxSizer(wx.HORIZONTAL)
         self.send_progress_bar = wx.Gauge(self.panel2, range=100)
         self.send_progress_label = wx.StaticText(self.panel2, label='0%')
+        self.sending_file_label = wx.StaticText(self.panel2, label='')
+        self.sending_file_label.SetForegroundColour(wx.Colour(100, 100, 100))
         hbox_progress1.Add(self.send_progress_bar, proportion=1, flag=wx.EXPAND)
         hbox_progress1.Add(self.send_progress_label, flag=wx.ALIGN_CENTER_VERTICAL | wx.LEFT, border=5)
-        sending_box.Add(self.sending_label, flag=wx.LEFT | wx.BOTTOM, border=10)
+        sending_box.Add(self.sending_label, flag=wx.LEFT | wx.BOTTOM)
         sending_box.Add(hbox_progress1, flag=wx.EXPAND)
+        sending_box.Add(self.sending_file_label, flag=wx.LEFT|wx.TOP)
         panel2_box.Add(sending_box, flag=wx.EXPAND | wx.ALL, border=10)
 
         # Receiving section with title above progress bar
@@ -70,10 +73,13 @@ class FileTransferUI(wx.Frame):
         hbox_progress2 = wx.BoxSizer(wx.HORIZONTAL)
         self.recv_progress_bar = wx.Gauge(self.panel2, range=100)
         self.recv_progress_label = wx.StaticText(self.panel2, label='0%')
+        self.receiving_file_label = wx.StaticText(self.panel2, label='')
+        self.receiving_file_label.SetForegroundColour(wx.Colour(100, 100, 100))
         hbox_progress2.Add(self.recv_progress_bar, proportion=1, flag=wx.EXPAND)
         hbox_progress2.Add(self.recv_progress_label, flag=wx.ALIGN_CENTER_VERTICAL | wx.LEFT, border=5)
-        receiving_box.Add(self.receiving_label, flag=wx.LEFT | wx.BOTTOM, border=10)
+        receiving_box.Add(self.receiving_label, flag=wx.LEFT | wx.BOTTOM)
         receiving_box.Add(hbox_progress2, flag=wx.EXPAND)
+        receiving_box.Add(self.receiving_file_label, flag=wx.LEFT|wx.TOP)
         panel2_box.Add(receiving_box, flag=wx.EXPAND | wx.ALL, border=10)
 
         self.panel2.SetSizer(panel2_box)
@@ -115,15 +121,18 @@ class FileTransferUI(wx.Frame):
 
     def _update_send_progress(self, progress: Progress):
         percent = int(100 * progress.processed_bytes / progress.file_size)
-        self.send_progress_label.SetLabelText(f'({percent}%) {progress.file}')
+        self.send_progress_label.SetLabelText(f'{percent}%')
         self.send_progress_bar.SetValue(percent)
         self.sending_label.SetLabelText(f'Sending ({progress.pending_files} pending files)')
+        self.sending_file_label.SetLabelText(progress.file)
         if progress.processed_bytes == progress.file_size:
             self.send_progress_bar.SetValue(0)
             self.send_progress_label.SetLabelText('0%')
+            self.sending_file_label.SetLabelText('')
         self.send_progress_bar.Update()
         self.send_progress_label.Update()
         self.sending_label.Update()
+        self.sending_file_label.Update()
 
 
     def _on_recv_progress(self, progress: Progress):
@@ -132,15 +141,18 @@ class FileTransferUI(wx.Frame):
 
     def _update_recv_progress(self, progress: Progress):
         percent = int(100 * progress.processed_bytes / progress.file_size)
-        self.recv_progress_label.SetLabelText(f'({percent}%) {progress.file}')
+        self.recv_progress_label.SetLabelText(f'{percent}%')
         self.recv_progress_bar.SetValue(percent)
         self.receiving_label.SetLabelText(f'Receiving ({progress.pending_files} pending files)')
+        self.receiving_file_label.SetLabelText(progress.file)
         if progress.processed_bytes == progress.file_size:
             self.recv_progress_bar.SetValue(0)
             self.recv_progress_label.SetLabelText('0%')
+            self.receiving_file_label.SetLabelText('')
         self.recv_progress_bar.Update()
         self.recv_progress_label.Update()
         self.receiving_label.Update()
+        self.receiving_file_label.Update()
 
 
     def _on_join_room(self, event: wx.Event):
