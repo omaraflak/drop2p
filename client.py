@@ -1,11 +1,10 @@
 import os
-import time
 import socket
 import logging
 from natpunch.client import NatPunchClient
-from collections import deque
 from typing import Callable
 from threading import Thread
+from queue import Queue
 from dataclasses import dataclass
 from pysock import (
     FileInputStream,
@@ -62,8 +61,8 @@ class Client:
         self.port = port
         self.on_send_progress = on_send_progress
         self.on_recv_progress = on_recv_progress
-        self.pending_files: deque[str] = deque()
         self.output_directory = output_directory
+        self.pending_files: Queue[str] = Queue()
         self.running = False
 
 
@@ -75,10 +74,12 @@ class Client:
     def stop(self):
         self.running = False
         self.socket.close()
+        self.pending_files.put('')
 
 
     def send_files(self, files: str):
-        self.pending_files.extend(files)
+        for file in files:
+            self.pending_files.put(file)
 
 
     def is_connected(self) -> bool:
@@ -99,11 +100,10 @@ class Client:
 
     def _send_loop(self):
         while self.running:
-            if not self.pending_files:
-                time.sleep(3)
+            filepath = self.pending_files.get()
+            if filepath == '':
                 continue
 
-            filepath = self.pending_files.popleft()
             try:
                 self._send_file(filepath)
             except socket.timeout:
