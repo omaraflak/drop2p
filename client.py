@@ -115,7 +115,7 @@ class Client:
 
     def _send_file(self, filepath: str):
         filename = os.path.basename(filepath)
-        header = Header(filename, len(self.pending_files))
+        header = Header(filename, self.pending_files.qsize())
         socket_send(self.socket, header.to_bytes())
         with FileInputStream(filepath) as fis:
             socket_send_stream(
