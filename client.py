@@ -1,19 +1,13 @@
+import io
 import os
 import socket
 import logging
 from natpunch.client import NatPunchClient
-from typing import Callable
-from threading import Thread
-from queue import Queue
 from dataclasses import dataclass
-from pysock import (
-    FileInputStream,
-    FileOutputStream,
-    socket_send,
-    socket_send_stream,
-    socket_recv,
-    socket_recv_stream
-)
+from threading import Thread
+from typing import Callable
+from queue import Queue
+from pysock import PySock
 
 
 @dataclass
@@ -87,11 +81,13 @@ class Client:
 
 
     def _connect(self, room: str, on_result: Callable[[bool], None]):
-        self.socket = NatPunchClient(self.host, self.port, room).start()
-        if not self.socket:
+        sock = NatPunchClient(self.host, self.port, room).start()
+        if not sock:
             on_result(False)
             return
-        self.socket.settimeout(360)
+
+        sock.settimeout(360)
+        self.socket = PySock(sock)
         self.running = True
         Thread(target=self._send_loop).start()
         Thread(target=self._recv_loop).start()
@@ -116,11 +112,10 @@ class Client:
     def _send_file(self, filepath: str):
         filename = os.path.basename(filepath)
         header = Header(filename, self.pending_files.qsize())
-        socket_send(self.socket, header.to_bytes())
-        with FileInputStream(filepath) as fis:
-            socket_send_stream(
-                self.socket,
-                fis,
+        self.socket.send(header.to_bytes())
+        with io.FileIO(filepath, 'rb') as file:
+            self.socket.send_stream(
+                file,
                 lambda sent, size: self.on_send_progress(Progress(filename, sent, size, header.pending_files))
             )
 
@@ -137,10 +132,9 @@ class Client:
 
 
     def _recv_file(self):
-        header = Header.from_bytes(socket_recv(self.socket))
-        with FileOutputStream(os.path.join(self.output_directory, header.filename)) as fos:
-            socket_recv_stream(
-                self.socket,
-                fos,
+        header = Header.from_bytes(self.socket.recv())
+        with io.FileIO(os.path.join(self.output_directory, header.filename), 'wb') as file:
+            self.socket.recv_stream(
+                file,
                 lambda received, size: self.on_recv_progress(Progress(header.filename, received, size, header.pending_files))
             )

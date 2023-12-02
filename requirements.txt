@@ -1,4 +1,3 @@
 fire
 wxpython
-git+https://github.com/omaraflak/pysock.git
 git+https://github.com/omaraflak/natpunch.git
